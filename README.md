@@ -10,7 +10,7 @@ your emails never leave your machine.
 
 1. Minimal dependencies — fewer packages, smaller attack surface
 2. Runs in a container
-3. Uses the official hosted Gmail MCP server — no Gmail credentials stored locally
+3. Uses the Gmail REST API — no third-party email access
 4. LLM runs locally (using OpenAI-compatible API)
 
 ## Prerequisites
@@ -22,7 +22,7 @@ your emails never leave your machine.
 ## Google OAuth2 setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project and enable **Gmail API** and **Gmail MCP API**
+2. Create a project and enable the **Gmail API**
 3. Create OAuth 2.0 credentials (Desktop app), download the JSON
 4. Run the one-time authorization flow to obtain a credentials file with a refresh token:
 
@@ -68,4 +68,4 @@ podman run --rm \
 
 ## How it works
 
-`anything-important` connects to the [Gmail MCP server](https://developers.google.com/workspace/gmail/api/guides/configure-mcp-server) to read your inbox. Each unread thread is sent to the local LLM for importance assessment. Important threads trigger a Telegram notification and are marked as read.
+`anything-important` uses the Gmail REST API to read your inbox. Each unread thread is sent to the local LLM for importance assessment. Important threads trigger a Telegram notification and are marked as read.

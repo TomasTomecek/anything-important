@@ -1,8 +1,7 @@
 import base64
-import json
 from dataclasses import dataclass
 
-from mcp import ClientSession
+import httpx
 
 
 @dataclass
@@ -28,16 +27,21 @@ def _decode_body(data: str) -> str:
         return ""
 
 
-async def list_unread_threads(session: ClientSession, query: str = "is:unread") -> list[Thread]:
-    result = await session.call_tool(
-        "search_threads",
-        {"query": query, "max_results": 20},
+async def list_unread_threads(client: httpx.AsyncClient, query: str = "is:unread") -> list[Thread]:
+    response = await client.get(
+        "/gmail/v1/users/me/threads",
+        params={"q": query, "maxResults": 20},
     )
-    thread_stubs = json.loads(result.content[0].text)
+    response.raise_for_status()
+    thread_stubs = response.json().get("threads", [])
     threads = []
     for stub in thread_stubs:
-        detail_result = await session.call_tool("get_thread", {"thread_id": stub["id"]})
-        detail = json.loads(detail_result.content[0].text)
+        detail_response = await client.get(
+            f"/gmail/v1/users/me/threads/{stub['id']}",
+            params={"format": "full"},
+        )
+        detail_response.raise_for_status()
+        detail = detail_response.json()
         messages = detail.get("messages", [])
         if not messages:
             continue
@@ -56,8 +60,9 @@ async def list_unread_threads(session: ClientSession, query: str = "is:unread") 
     return threads
 
 
-async def mark_thread_read(session: ClientSession, message_id: str) -> None:
-    await session.call_tool(
-        "unlabel_message",
-        {"message_id": message_id, "label_name": "UNREAD"},
+async def mark_thread_read(client: httpx.AsyncClient, thread_id: str) -> None:
+    response = await client.post(
+        f"/gmail/v1/users/me/threads/{thread_id}/modify",
+        json={"removeLabelIds": ["UNREAD"]},
     )
+    response.raise_for_status()

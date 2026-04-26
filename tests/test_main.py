@@ -34,7 +34,7 @@ async def test_run_once_notifies_for_important_thread():
         text="📧 Important email from boss@example.com\nSubject: Urgent",
     )
     mock_mark.assert_called_once()
-    assert mock_mark.call_args.kwargs == {"message_id": "m1"}
+    assert mock_mark.call_args.kwargs == {"thread_id": "t1"}
 
 
 async def test_run_once_skips_unimportant_thread():
