@@ -30,7 +30,7 @@ python3 -c "
 from google_auth_oauthlib.flow import InstalledAppFlow
 flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', [
     'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.compose',
+    'https://www.googleapis.com/auth/gmail.modify',
 ])
 creds = flow.run_local_server()
 import json, pathlib
