@@ -13,6 +13,7 @@ def _cfg() -> Config:
         ollama_model="llama3.2",
         check_interval=300,
         gmail_credentials_file="/creds.json",
+        gmail_query="is:unread",
     )
 
 

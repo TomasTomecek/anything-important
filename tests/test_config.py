@@ -19,6 +19,7 @@ def test_config_optional_defaults(monkeypatch):
     monkeypatch.delenv("OLLAMA_MODEL", raising=False)
     monkeypatch.delenv("CHECK_INTERVAL", raising=False)
     monkeypatch.delenv("GMAIL_CREDENTIALS_FILE", raising=False)
+    monkeypatch.delenv("GMAIL_QUERY", raising=False)
 
     cfg = Config.from_env()
 
@@ -26,6 +27,7 @@ def test_config_optional_defaults(monkeypatch):
     assert cfg.ollama_model == "llama3.2"
     assert cfg.check_interval == 300
     assert cfg.gmail_credentials_file == "/credentials/oauth_credentials.json"
+    assert cfg.gmail_query == "is:unread"
 
 
 def test_config_overrides_defaults(monkeypatch):
@@ -35,6 +37,7 @@ def test_config_overrides_defaults(monkeypatch):
     monkeypatch.setenv("OLLAMA_MODEL", "mistral")
     monkeypatch.setenv("CHECK_INTERVAL", "60")
     monkeypatch.setenv("GMAIL_CREDENTIALS_FILE", "/creds.json")
+    monkeypatch.setenv("GMAIL_QUERY", "is:unread label:inbox")
 
     cfg = Config.from_env()
 
@@ -42,6 +45,7 @@ def test_config_overrides_defaults(monkeypatch):
     assert cfg.ollama_model == "mistral"
     assert cfg.check_interval == 60
     assert cfg.gmail_credentials_file == "/creds.json"
+    assert cfg.gmail_query == "is:unread label:inbox"
 
 
 def test_config_missing_telegram_token_raises(monkeypatch):

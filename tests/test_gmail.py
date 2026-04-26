@@ -39,7 +39,7 @@ async def test_list_unread_threads_returns_thread_objects():
     })
     session = _make_session(search_threads=search_result, get_thread=thread_result)
 
-    threads = await list_unread_threads(session)
+    threads = await list_unread_threads(session, query="is:unread")
 
     assert len(threads) == 1
     assert threads[0].id == "t1"
@@ -52,7 +52,7 @@ async def test_list_unread_threads_returns_thread_objects():
 async def test_list_unread_threads_returns_empty_when_no_threads():
     session = _make_session(search_threads=_tool_result([]))
 
-    threads = await list_unread_threads(session)
+    threads = await list_unread_threads(session, query="is:unread")
 
     assert threads == []
 

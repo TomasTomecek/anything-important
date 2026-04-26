@@ -28,10 +28,10 @@ def _decode_body(data: str) -> str:
         return ""
 
 
-async def list_unread_threads(session: ClientSession) -> list[Thread]:
+async def list_unread_threads(session: ClientSession, query: str = "is:unread") -> list[Thread]:
     result = await session.call_tool(
         "search_threads",
-        {"query": "is:unread", "max_results": 20},
+        {"query": query, "max_results": 20},
     )
     thread_stubs = json.loads(result.content[0].text)
     threads = []

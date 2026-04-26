@@ -1,15 +1,17 @@
-# Anything important?
+# Anything Important?
 
 Is there an email that requires my attention?
 
-A tool that periodically checks your Gmail inbox for important emails and notifies you via Telegram. Importance is assessed by a locally deployed LLM — your emails never leave your machine.
+A tool that periodically checks your Gmail inbox for important emails and
+notifies you via Telegram. Importance is assessed by a locally deployed LLM —
+your emails never leave your machine.
 
 ## Security model
 
 1. Minimal dependencies — fewer packages, smaller attack surface
 2. Runs in a container
 3. Uses the official hosted Gmail MCP server — no Gmail credentials stored locally
-4. LLM runs locally via Ollama
+4. LLM runs locally (using OpenAI-compatible API)
 
 ## Prerequisites
 
@@ -51,6 +53,7 @@ All configuration is via environment variables:
 | `OLLAMA_MODEL` | `llama3.2` | Ollama model name |
 | `CHECK_INTERVAL` | `300` | Seconds between inbox checks |
 | `GMAIL_CREDENTIALS_FILE` | `/credentials/oauth_credentials.json` | Path to OAuth2 credentials JSON |
+| `GMAIL_QUERY` | `is:unread` | Gmail search query to filter threads |
 
 ## Run
 

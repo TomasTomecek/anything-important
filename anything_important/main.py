@@ -18,7 +18,7 @@ _GMAIL_MCP_URL = "https://gmailmcp.googleapis.com/mcp/v1"
 
 
 async def run_once(config: Config, session: ClientSession) -> None:
-    threads = await list_unread_threads(session)
+    threads = await list_unread_threads(session, query=config.gmail_query)
     log.info("Found %d unread threads", len(threads))
     for thread in threads:
         important = await assess_importance(

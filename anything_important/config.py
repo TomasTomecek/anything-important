@@ -10,6 +10,7 @@ class Config:
     ollama_model: str
     check_interval: int
     gmail_credentials_file: str
+    gmail_query: str
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -22,4 +23,5 @@ class Config:
             gmail_credentials_file=os.getenv(
                 "GMAIL_CREDENTIALS_FILE", "/credentials/oauth_credentials.json"
             ),
+            gmail_query=os.getenv("GMAIL_QUERY", "is:unread"),
         )
