@@ -27,19 +27,10 @@ your emails never leave your machine.
 4. Run the one-time authorization flow to obtain a credentials file with a refresh token:
 
 ```bash
-pip install google-auth-oauthlib
-python3 -c "
-from google_auth_oauthlib.flow import InstalledAppFlow
-flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.modify',
-])
-creds = flow.run_local_server()
-import json, pathlib
-pathlib.Path('oauth_credentials.json').write_text(creds.to_json())
-print('Saved oauth_credentials.json')
-"
+anything-important auth --client-secret client_secret.json
 ```
+
+This opens a browser window for the OAuth consent flow and saves `oauth_credentials.json`.
 
 ## Configuration
 

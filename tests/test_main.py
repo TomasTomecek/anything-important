@@ -1,8 +1,9 @@
-from unittest.mock import AsyncMock, patch
+import argparse
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from anything_important.config import Config
 from anything_important.gmail import Thread
-from anything_important.main import run_once
+from anything_important.main import _cmd_auth, run_once
 
 
 def _cfg() -> Config:
@@ -79,3 +80,23 @@ async def test_run_once_handles_empty_inbox():
         await run_once(_cfg(), AsyncMock())
 
     mock_send.assert_not_called()
+
+
+def test_cmd_auth_saves_credentials(tmp_path):
+    mock_creds = MagicMock()
+    mock_creds.to_json.return_value = '{"token": "test_token"}'
+    mock_flow = MagicMock()
+    mock_flow.run_local_server.return_value = mock_creds
+    output = tmp_path / "creds.json"
+
+    with patch("anything_important.main.InstalledAppFlow.from_client_secrets_file", return_value=mock_flow) as mock_from_file:
+        _cmd_auth(argparse.Namespace(client_secret="client_secret.json", output=str(output)))
+
+    mock_from_file.assert_called_once_with(
+        "client_secret.json",
+        [
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/gmail.modify",
+        ],
+    )
+    assert output.read_text() == '{"token": "test_token"}'
