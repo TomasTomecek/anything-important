@@ -70,7 +70,7 @@ async def _run_loop(config: Config) -> None:
 
 def _cmd_auth(args: argparse.Namespace) -> None:
     flow = InstalledAppFlow.from_client_secrets_file(args.client_secret, _GMAIL_SCOPES)
-    creds = flow.run_local_server(port=args.port)
+    creds = flow.run_local_server(port=args.port, open_browser=False)
     pathlib.Path(args.output).write_text(creds.to_json())
     print(f"Saved {args.output}")
 
