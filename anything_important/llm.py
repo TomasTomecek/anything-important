@@ -1,4 +1,8 @@
+import logging
+
 import httpx
+
+log = logging.getLogger(__name__)
 
 _PROMPT = """\
 You are an email triage assistant. Decide if the following email is important.
@@ -15,7 +19,9 @@ Not important emails are ones that:
 - Are automated notifications that require no action
 - Are spam or bulk mail
 
-Respond with only YES (important) or NO (not important).
+Respond in exactly this format:
+ANSWER: YES or NO
+REASON: one sentence explanation
 
 From: {sender}
 Subject: {subject}
@@ -43,5 +49,17 @@ async def assess_importance(
             },
         )
         response.raise_for_status()
-        answer = response.json()["choices"][0]["message"]["content"].strip().upper()
-        return answer.startswith("YES")
+        text = response.json()["choices"][0]["message"]["content"].strip()
+
+    answer = "NO"
+    reason = ""
+    for line in text.splitlines():
+        line = line.strip()
+        if line.upper().startswith("ANSWER:"):
+            answer = line.split(":", 1)[1].strip().upper()
+        elif line.upper().startswith("REASON:"):
+            reason = line.split(":", 1)[1].strip()
+
+    important = answer.startswith("YES")
+    log.info("Decision: %s — %s", answer, reason)
+    return important
