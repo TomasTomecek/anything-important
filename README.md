@@ -15,7 +15,7 @@ your emails never leave your machine.
 
 ## Prerequisites
 
-- [Ollama](https://ollama.com/) running locally with a model pulled (e.g. `ollama pull llama3.2`)
+- A local LLM server exposing an OpenAI-compatible API (e.g. [llama-cpp](https://github.com/ggerganov/llama.cpp))
 - A [Telegram bot token](https://core.telegram.org/bots#how-do-i-create-a-bot) and your chat ID
 - Google OAuth2 credentials JSON (see setup below)
 
@@ -24,13 +24,18 @@ your emails never leave your machine.
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a project and enable the **Gmail API**
 3. Create OAuth 2.0 credentials (Desktop app), download the JSON
-4. Run the one-time authorization flow to obtain a credentials file with a refresh token:
+4. Add `http://localhost:8080` (or your chosen `--port`) as an authorized redirect URI
+5. Run the one-time authorization flow to obtain a credentials file with a refresh token:
 
 ```bash
 anything-important auth --client-secret client_secret.json
 ```
 
-This opens a browser window for the OAuth consent flow and saves `oauth_credentials.json`.
+This prints an authorization URL. Open it in any browser, approve access, then copy the
+full redirect URL from the browser's address bar (e.g. `http://localhost:8080/?code=...`)
+and paste it at the prompt. The credentials are saved to `oauth_credentials.json`.
+
+Use `--port PORT` if port 8080 is in use (update the authorized redirect URI to match).
 
 ## Configuration
 
@@ -40,23 +45,36 @@ All configuration is via environment variables:
 |----------|---------|-------------|
 | `TELEGRAM_TOKEN` | **required** | Telegram bot token |
 | `TELEGRAM_CHAT_ID` | **required** | Telegram chat ID to send alerts to |
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama base URL |
-| `OLLAMA_MODEL` | `llama3.2` | Ollama model name |
+| `OLLAMA_URL` | `http://localhost:11434` | LLM server base URL |
+| `OLLAMA_MODEL` | `llama3.2` | Model name |
 | `CHECK_INTERVAL` | `300` | Seconds between inbox checks |
 | `GMAIL_CREDENTIALS_FILE` | `/credentials/oauth_credentials.json` | Path to OAuth2 credentials JSON |
-| `GMAIL_QUERY` | `is:unread` | Gmail search query to filter threads |
+| `GMAIL_QUERY` | `is:unread newer_than:5d -label:llm-says-important` | Gmail search query to filter threads |
 
 ## Run
 
 ```bash
+make build
+
+make run TELEGRAM_TOKEN=your_token TELEGRAM_CHAT_ID=your_chat_id
+```
+
+Or directly with podman:
+
+```bash
 podman run --rm \
+  --network host \
   -e TELEGRAM_TOKEN=your_token \
   -e TELEGRAM_CHAT_ID=your_chat_id \
-  -e OLLAMA_URL=http://host.containers.internal:11434 \
-  -v /path/to/oauth_credentials.json:/credentials/oauth_credentials.json:ro \
+  -e OLLAMA_URL=http://localhost:8080 \
+  -v /path/to/oauth_credentials.json:/credentials/oauth_credentials.json:ro,Z \
   anything-important
 ```
 
+`--network host` is needed so the container can reach a LLM server running on the host.
+
 ## How it works
 
-`anything-important` uses the Gmail REST API to read your inbox. Each unread thread is sent to the local LLM for importance assessment. Important threads trigger a Telegram notification and are marked as read.
+`anything-important` uses the Gmail REST API to read your inbox. Each unread thread is sent
+to the local LLM for importance assessment. Important threads trigger a Telegram notification
+and are labeled `llm-says-important` in Gmail so they are not re-processed on the next check.
