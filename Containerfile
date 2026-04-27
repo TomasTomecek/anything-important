@@ -9,4 +9,6 @@ RUN pip3 install --no-cache-dir .
 
 COPY anything_important/ anything_important/
 
+ENV PYTHONPATH=/app
+
 CMD ["anything-important"]
