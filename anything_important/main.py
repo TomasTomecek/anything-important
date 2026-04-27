@@ -41,7 +41,8 @@ async def run_once(config: Config, client: httpx.AsyncClient) -> None:
                 chat_id=config.telegram_chat_id,
                 text=f"📧 Important email from {thread.sender}\nSubject: {thread.subject}",
             )
-            await mark_thread_read(client, thread_id=thread.id)
+            # FIXME: instead use labels
+            # await mark_thread_read(client, thread_id=thread.id)
         else:
             log.info("Skipping unimportant thread from %s", thread.sender)
 
