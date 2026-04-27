@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock, patch
+import httpx
 import pytest
 from anything_important.llm import assess_importance
 
@@ -145,6 +146,51 @@ async def test_assess_importance_parses_realistic_llama_cpp_response():
         )
 
     assert result is False
+
+
+async def test_assess_importance_retries_on_transport_error():
+    good_resp = _llm_response("ANSWER: YES\nREASON: Requires action.")
+    mock_client = _make_mock_client(good_resp)
+    mock_client.post = AsyncMock(side_effect=[
+        httpx.ConnectError("connection refused"),
+        good_resp,
+    ])
+
+    with (
+        patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client),
+        patch("anything_important.llm.asyncio.sleep", AsyncMock()) as mock_sleep,
+    ):
+        result = await assess_importance(
+            ollama_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+        )
+
+    assert result is True
+    assert mock_client.post.call_count == 2
+    mock_sleep.assert_called_once()
+
+
+async def test_assess_importance_raises_after_all_retries_exhausted():
+    mock_client = _make_mock_client(MagicMock())
+    mock_client.post = AsyncMock(side_effect=httpx.ConnectError("connection refused"))
+
+    with (
+        patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client),
+        patch("anything_important.llm.asyncio.sleep", AsyncMock()),
+    ):
+        with pytest.raises(httpx.ConnectError):
+            await assess_importance(
+                ollama_url="http://localhost:8080",
+                model="llama3",
+                sender="a@b.com",
+                subject="hi",
+                body="body",
+            )
+
+    assert mock_client.post.call_count == 3
 
 
 async def test_assess_importance_truncates_long_body():
