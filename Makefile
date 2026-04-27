@@ -13,5 +13,5 @@ run:
 	  -e TELEGRAM_TOKEN=$(TELEGRAM_TOKEN) \
 	  -e TELEGRAM_CHAT_ID=$(TELEGRAM_CHAT_ID) \
 	  -e OLLAMA_URL=$(OLLAMA_URL) \
-	  -v $(GMAIL_CREDENTIALS):/credentials/oauth_credentials.json:ro \
+	  -v $(GMAIL_CREDENTIALS):/credentials/oauth_credentials.json:ro,Z \
 	  $(IMAGE)
