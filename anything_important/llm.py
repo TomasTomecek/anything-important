@@ -1,9 +1,21 @@
 import httpx
 
 _PROMPT = """\
-You are an email triage assistant. Determine if the following email requires \
-immediate human attention.
-Respond with only YES or NO.
+You are an email triage assistant. Decide if the following email is important.
+
+Important emails are ones that:
+- Require a decision or action from the recipient
+- Involve money, payments, invoices, or financial matters
+- Involve scheduling, meetings, or the recipient's time
+- Are from family, friends, or close colleagues
+- Contain urgent or time-sensitive information
+
+Not important emails are ones that:
+- Are marketing, promotions, newsletters, or advertisements
+- Are automated notifications that require no action
+- Are spam or bulk mail
+
+Respond with only YES (important) or NO (not important).
 
 From: {sender}
 Subject: {subject}
