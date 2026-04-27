@@ -9,7 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from anything_important.auth import get_access_token
 from anything_important.config import Config
-from anything_important.gmail import list_unread_threads, mark_thread_read
+from anything_important.gmail import apply_label, get_or_create_label, list_unread_threads, mark_thread_read
 from anything_important.llm import assess_importance
 from anything_important.telegram import send_message
 
@@ -23,7 +23,11 @@ _GMAIL_SCOPES = [
 ]
 
 
+_IMPORTANT_LABEL = "llm-says-important"
+
+
 async def run_once(config: Config, client: httpx.AsyncClient) -> None:
+    label_id = await get_or_create_label(client, _IMPORTANT_LABEL)
     threads = await list_unread_threads(client, query=config.gmail_query)
     log.info("Found %d unread threads", len(threads))
     for thread in threads:
@@ -41,8 +45,7 @@ async def run_once(config: Config, client: httpx.AsyncClient) -> None:
                 chat_id=config.telegram_chat_id,
                 text=f"📧 Important email from {thread.sender}\nSubject: {thread.subject}",
             )
-            # FIXME: instead use labels
-            # await mark_thread_read(client, thread_id=thread.id)
+            await apply_label(client, thread_id=thread.id, label_id=label_id)
         else:
             log.info("Skipping unimportant thread from %s", thread.sender)
 

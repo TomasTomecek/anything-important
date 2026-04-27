@@ -23,5 +23,5 @@ class Config:
             gmail_credentials_file=os.getenv(
                 "GMAIL_CREDENTIALS_FILE", "/credentials/oauth_credentials.json"
             ),
-            gmail_query=os.getenv("GMAIL_QUERY", "is:unread newer_than:5d"),
+            gmail_query=os.getenv("GMAIL_QUERY", "is:unread newer_than:5d -label:llm-says-important"),
         )

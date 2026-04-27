@@ -66,3 +66,22 @@ async def mark_thread_read(client: httpx.AsyncClient, thread_id: str) -> None:
         json={"removeLabelIds": ["UNREAD"]},
     )
     response.raise_for_status()
+
+
+async def get_or_create_label(client: httpx.AsyncClient, name: str) -> str:
+    response = await client.get("/gmail/v1/users/me/labels")
+    response.raise_for_status()
+    for label in response.json().get("labels", []):
+        if label["name"] == name:
+            return label["id"]
+    response = await client.post("/gmail/v1/users/me/labels", json={"name": name})
+    response.raise_for_status()
+    return response.json()["id"]
+
+
+async def apply_label(client: httpx.AsyncClient, thread_id: str, label_id: str) -> None:
+    response = await client.post(
+        f"/gmail/v1/users/me/threads/{thread_id}/modify",
+        json={"addLabelIds": [label_id]},
+    )
+    response.raise_for_status()
