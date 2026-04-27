@@ -70,8 +70,12 @@ async def _run_loop(config: Config) -> None:
 
 def _cmd_auth(args: argparse.Namespace) -> None:
     flow = InstalledAppFlow.from_client_secrets_file(args.client_secret, _GMAIL_SCOPES)
-    creds = flow.run_local_server(port=args.port, open_browser=False)
-    pathlib.Path(args.output).write_text(creds.to_json())
+    flow.redirect_uri = f"http://localhost:{args.port}"
+    auth_url, _ = flow.authorization_url(prompt="consent")
+    print(f"Open this URL in a browser:\n\n  {auth_url}\n")
+    redirect_response = input("After approving, paste the full redirect URL here: ").strip()
+    flow.fetch_token(authorization_response=redirect_response)
+    pathlib.Path(args.output).write_text(flow.credentials.to_json())
     print(f"Saved {args.output}")
 
 
