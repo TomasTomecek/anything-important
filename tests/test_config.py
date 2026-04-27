@@ -27,7 +27,7 @@ def test_config_optional_defaults(monkeypatch):
     assert cfg.ollama_model == "llama3.2"
     assert cfg.check_interval == 300
     assert cfg.gmail_credentials_file == "/credentials/oauth_credentials.json"
-    assert cfg.gmail_query == "is:unread"
+    assert cfg.gmail_query == "is:unread newer_than:5d"
 
 
 def test_config_overrides_defaults(monkeypatch):
