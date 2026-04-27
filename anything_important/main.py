@@ -70,7 +70,7 @@ async def _run_loop(config: Config) -> None:
 
 def _cmd_auth(args: argparse.Namespace) -> None:
     flow = InstalledAppFlow.from_client_secrets_file(args.client_secret, _GMAIL_SCOPES)
-    creds = flow.run_local_server()
+    creds = flow.run_local_server(port=args.port)
     pathlib.Path(args.output).write_text(creds.to_json())
     print(f"Saved {args.output}")
 
@@ -84,6 +84,8 @@ def main() -> None:
                              help="OAuth2 client secrets JSON from Google Cloud Console (default: client_secret.json)")
     auth_parser.add_argument("--output", default="oauth_credentials.json", metavar="FILE",
                              help="Where to save the credentials (default: oauth_credentials.json)")
+    auth_parser.add_argument("--port", type=int, default=8080, metavar="PORT",
+                             help="Local port for the OAuth2 redirect (default: 8080)")
 
     args = parser.parse_args()
 
