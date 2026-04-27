@@ -31,5 +31,5 @@ async def assess_importance(
             },
         )
         response.raise_for_status()
-        answer = response.json()["message"]["content"].strip().upper()
+        answer = response.json()["choices"][0]["message"]["content"].strip().upper()
         return answer.startswith("YES")
