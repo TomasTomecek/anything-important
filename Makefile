@@ -9,6 +9,7 @@ build:
 
 run:
 	podman run --rm \
+	  --network host \
 	  -e TELEGRAM_TOKEN=$(TELEGRAM_TOKEN) \
 	  -e TELEGRAM_CHAT_ID=$(TELEGRAM_CHAT_ID) \
 	  -e OLLAMA_URL=$(OLLAMA_URL) \
