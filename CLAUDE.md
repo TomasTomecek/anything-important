@@ -29,7 +29,7 @@ Default query: `is:unread newer_than:5d -label:llm-says-important`
 ## Running tests
 
 ```
-.venv/bin/python -m pytest tests/ -q
+uv run pytest tests/ -q
 ```
 
 Tests use `pytest-asyncio` in `auto` mode (no `@pytest.mark.asyncio` needed).
