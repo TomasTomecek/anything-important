@@ -24,7 +24,7 @@ async def test_assess_importance_returns_true_for_yes():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         result = await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="llama3",
             sender="boss@example.com",
             subject="Urgent: action needed",
@@ -39,7 +39,7 @@ async def test_assess_importance_returns_false_for_no():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         result = await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="llama3",
             sender="newsletter@example.com",
             subject="Weekly digest",
@@ -56,7 +56,7 @@ async def test_assess_importance_logs_reason(caplog):
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         with caplog.at_level(logging.INFO, logger="anything_important.llm"):
             await assess_importance(
-                ollama_url="http://localhost:8080",
+                llm_url="http://localhost:8080",
                 model="llama3",
                 sender="promo@shop.com",
                 subject="Sale!",
@@ -71,7 +71,7 @@ async def test_assess_importance_defaults_to_no_on_malformed_response():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         result = await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="llama3",
             sender="a@b.com",
             subject="hi",
@@ -86,7 +86,7 @@ async def test_assess_importance_includes_email_content_in_prompt():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="llama3",
             sender="sender@test.com",
             subject="Test subject",
@@ -138,7 +138,7 @@ async def test_assess_importance_parses_realistic_llama_cpp_response():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         result = await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="Qwen3.5-9B-Q4_K_M.gguf",
             sender="newsletter@example.com",
             subject="Weekly digest",
@@ -161,7 +161,7 @@ async def test_assess_importance_retries_on_transport_error():
         patch("anything_important.llm.asyncio.sleep", AsyncMock()) as mock_sleep,
     ):
         result = await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="llama3",
             sender="a@b.com",
             subject="hi",
@@ -183,7 +183,7 @@ async def test_assess_importance_raises_after_all_retries_exhausted():
     ):
         with pytest.raises(httpx.ConnectError):
             await assess_importance(
-                ollama_url="http://localhost:8080",
+                llm_url="http://localhost:8080",
                 model="llama3",
                 sender="a@b.com",
                 subject="hi",
@@ -199,7 +199,7 @@ async def test_assess_importance_truncates_long_body():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         await assess_importance(
-            ollama_url="http://localhost:8080",
+            llm_url="http://localhost:8080",
             model="llama3",
             sender="a@b.com",
             subject="hi",

@@ -32,8 +32,8 @@ async def run_once(config: Config, client: httpx.AsyncClient) -> None:
     log.info("Found %d unread threads", len(threads))
     for thread in threads:
         important = await assess_importance(
-            ollama_url=config.ollama_url,
-            model=config.ollama_model,
+            llm_url=config.llm_url,
+            model=config.llm_model,
             sender=thread.sender,
             subject=thread.subject,
             body=thread.body,

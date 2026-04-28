@@ -45,8 +45,8 @@ All configuration is via environment variables:
 |----------|---------|-------------|
 | `TELEGRAM_TOKEN` | **required** | Telegram bot token |
 | `TELEGRAM_CHAT_ID` | **required** | Telegram chat ID to send alerts to |
-| `OLLAMA_URL` | `http://localhost:11434` | LLM server base URL |
-| `OLLAMA_MODEL` | `llama3.2` | Model name |
+| `LLM_URL` | `http://localhost:11434` | LLM server base URL |
+| `LLM_MODEL` | `llama3.2` | Model name |
 | `CHECK_INTERVAL` | `300` | Seconds between inbox checks |
 | `GMAIL_CREDENTIALS_FILE` | `/credentials/oauth_credentials.json` | Path to OAuth2 credentials JSON |
 | `GMAIL_QUERY` | `is:unread newer_than:5d -label:llm-says-important` | Gmail search query to filter threads |
@@ -66,7 +66,7 @@ podman run --rm \
   --network host \
   -e TELEGRAM_TOKEN=your_token \
   -e TELEGRAM_CHAT_ID=your_chat_id \
-  -e OLLAMA_URL=http://localhost:8080 \
+  -e LLM_URL=http://localhost:8080 \
   -v /path/to/oauth_credentials.json:/credentials/oauth_credentials.json:ro,Z \
   anything-important
 ```

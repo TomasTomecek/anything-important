@@ -10,8 +10,8 @@ def _cfg() -> Config:
     return Config(
         telegram_token="tok",
         telegram_chat_id="123",
-        ollama_url="http://localhost:8080",
-        ollama_model="llama3",
+        llm_url="http://localhost:8080",
+        llm_model="llama3",
         check_interval=300,
         gmail_credentials_file="/creds.json",
         gmail_query="is:unread",

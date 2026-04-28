@@ -36,7 +36,7 @@ _MAX_BODY = 2000
 
 
 async def assess_importance(
-    ollama_url: str,
+    llm_url: str,
     model: str,
     sender: str,
     subject: str,
@@ -48,7 +48,7 @@ async def assess_importance(
         for attempt in range(1, _RETRY_ATTEMPTS + 1):
             try:
                 response = await client.post(
-                    f"{ollama_url}/api/chat",
+                    f"{llm_url}/api/chat",
                     json={
                         "model": model,
                         "messages": [{"role": "user", "content": prompt}],

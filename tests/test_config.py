@@ -15,16 +15,16 @@ def test_config_loads_required_from_env(monkeypatch):
 def test_config_optional_defaults(monkeypatch):
     monkeypatch.setenv("TELEGRAM_TOKEN", "tok")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
-    monkeypatch.delenv("OLLAMA_URL", raising=False)
-    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+    monkeypatch.delenv("LLM_URL", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("CHECK_INTERVAL", raising=False)
     monkeypatch.delenv("GMAIL_CREDENTIALS_FILE", raising=False)
     monkeypatch.delenv("GMAIL_QUERY", raising=False)
 
     cfg = Config.from_env()
 
-    assert cfg.ollama_url == "http://localhost:11434"
-    assert cfg.ollama_model == "llama3.2"
+    assert cfg.llm_url == "http://localhost:11434"
+    assert cfg.llm_model == "llama3.2"
     assert cfg.check_interval == 300
     assert cfg.gmail_credentials_file == "/credentials/oauth_credentials.json"
     assert cfg.gmail_query == "is:unread newer_than:5d -label:llm-says-important"
@@ -33,16 +33,16 @@ def test_config_optional_defaults(monkeypatch):
 def test_config_overrides_defaults(monkeypatch):
     monkeypatch.setenv("TELEGRAM_TOKEN", "tok")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
-    monkeypatch.setenv("OLLAMA_URL", "http://ollama:11434")
-    monkeypatch.setenv("OLLAMA_MODEL", "mistral")
+    monkeypatch.setenv("LLM_URL", "http://ollama:11434")
+    monkeypatch.setenv("LLM_MODEL", "mistral")
     monkeypatch.setenv("CHECK_INTERVAL", "60")
     monkeypatch.setenv("GMAIL_CREDENTIALS_FILE", "/creds.json")
     monkeypatch.setenv("GMAIL_QUERY", "is:unread label:inbox")
 
     cfg = Config.from_env()
 
-    assert cfg.ollama_url == "http://ollama:11434"
-    assert cfg.ollama_model == "mistral"
+    assert cfg.llm_url == "http://ollama:11434"
+    assert cfg.llm_model == "mistral"
     assert cfg.check_interval == 60
     assert cfg.gmail_credentials_file == "/creds.json"
     assert cfg.gmail_query == "is:unread label:inbox"

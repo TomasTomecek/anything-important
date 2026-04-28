@@ -60,8 +60,8 @@ in the Google Cloud Console.
 |---|---|---|
 | `TELEGRAM_TOKEN` | required | Telegram bot token |
 | `TELEGRAM_CHAT_ID` | required | Telegram chat ID |
-| `OLLAMA_URL` | `http://localhost:11434` | LLM server base URL |
-| `OLLAMA_MODEL` | `llama3.2` | Model name |
+| `LLM_URL` | `http://localhost:11434` | LLM server base URL |
+| `LLM_MODEL` | `llama3.2` | Model name |
 | `CHECK_INTERVAL` | `300` | Seconds between checks |
 | `GMAIL_CREDENTIALS_FILE` | `/credentials/oauth_credentials.json` | OAuth2 credentials path |
 | `GMAIL_QUERY` | `is:unread newer_than:5d -label:llm-says-important` | Gmail search query |
