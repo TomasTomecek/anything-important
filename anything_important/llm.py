@@ -51,7 +51,7 @@ async def assess_importance(
         body=body[:_MAX_BODY],
     )
     last_exc: Exception = RuntimeError("no attempts made")
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=180.0) as client:
         for attempt in range(1, _RETRY_ATTEMPTS + 1):
             try:
                 response = await client.post(
@@ -60,6 +60,7 @@ async def assess_importance(
                         "model": model,
                         "messages": [{"role": "user", "content": prompt}],
                         "stream": False,
+                        "reasoning_effort": "medium",
                     },
                 )
                 response.raise_for_status()
