@@ -79,6 +79,34 @@ async def get_or_create_label(client: httpx.AsyncClient, name: str) -> str:
     return response.json()["id"]
 
 
+async def list_important_subjects(
+    client: httpx.AsyncClient, max_results: int = 100
+) -> list[tuple[str, str]]:
+    query = "is:starred OR is:important OR label:llm-says-important"
+    response = await client.get(
+        "/gmail/v1/users/me/threads",
+        params={"q": query, "maxResults": max_results},
+    )
+    response.raise_for_status()
+    thread_stubs = response.json().get("threads", [])
+    results = []
+    for stub in thread_stubs:
+        detail_response = await client.get(
+            f"/gmail/v1/users/me/threads/{stub['id']}",
+            params={"format": "metadata", "metadataHeaders": ["From", "Subject"]},
+        )
+        detail_response.raise_for_status()
+        messages = detail_response.json().get("messages", [])
+        if not messages:
+            continue
+        headers = messages[0].get("payload", {}).get("headers", [])
+        sender = _header(headers, "From")
+        subject = _header(headers, "Subject")
+        if sender or subject:
+            results.append((sender, subject))
+    return results
+
+
 async def apply_label(client: httpx.AsyncClient, thread_id: str, label_id: str) -> None:
     response = await client.post(
         f"/gmail/v1/users/me/threads/{thread_id}/modify",

@@ -9,7 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from anything_important.auth import get_access_token
 from anything_important.config import Config
-from anything_important.gmail import apply_label, get_or_create_label, list_unread_threads, mark_thread_read
+from anything_important.gmail import apply_label, get_or_create_label, list_important_subjects, list_unread_threads, mark_thread_read
 from anything_important.llm import assess_importance
 from anything_important.telegram import send_message
 
@@ -26,7 +26,11 @@ _GMAIL_SCOPES = [
 _IMPORTANT_LABEL = "llm-says-important"
 
 
-async def run_once(config: Config, client: httpx.AsyncClient) -> None:
+async def run_once(
+    config: Config,
+    client: httpx.AsyncClient,
+    known_important: list[tuple[str, str]] | None = None,
+) -> None:
     label_id = await get_or_create_label(client, _IMPORTANT_LABEL)
     threads = await list_unread_threads(client, query=config.gmail_query)
     log.info("Found %d unread threads", len(threads))
@@ -37,6 +41,7 @@ async def run_once(config: Config, client: httpx.AsyncClient) -> None:
             sender=thread.sender,
             subject=thread.subject,
             body=thread.body,
+            known_important=known_important,
         )
         if important:
             log.info("Important: %s — %s", thread.sender, thread.subject)
@@ -61,10 +66,14 @@ async def _gmail_client(config: Config):
 
 
 async def _run_loop(config: Config) -> None:
+    async with _gmail_client(config) as client:
+        known_important = await list_important_subjects(client)
+    log.info("Loaded %d example important subjects", len(known_important))
+
     while True:
         try:
             async with _gmail_client(config) as client:
-                await run_once(config, client)
+                await run_once(config, client, known_important=known_important)
         except Exception:
             log.exception("Error during check cycle")
         log.info("Sleeping %ds until next check", config.check_interval)

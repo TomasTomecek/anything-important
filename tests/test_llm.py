@@ -193,6 +193,67 @@ async def test_assess_importance_raises_after_all_retries_exhausted():
     assert mock_client.post.call_count == 3
 
 
+async def test_assess_importance_includes_known_important_examples_in_prompt():
+    mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+            known_important=[
+                ("boss@example.com", "Q2 budget review"),
+                ("wife@gmail.com", "Pick up kids today"),
+            ],
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "boss@example.com" in prompt_text
+    assert "Q2 budget review" in prompt_text
+    assert "wife@gmail.com" in prompt_text
+    assert "Pick up kids today" in prompt_text
+    assert "previously considered important" in prompt_text
+
+
+async def test_assess_importance_omits_examples_section_when_none():
+    mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+            known_important=None,
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "previously considered important" not in prompt_text
+
+
+async def test_assess_importance_omits_examples_section_when_empty():
+    mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+            known_important=[],
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "previously considered important" not in prompt_text
+
+
 async def test_assess_importance_truncates_long_body():
     long_body = "x" * 5000
     mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))

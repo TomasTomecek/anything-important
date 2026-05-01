@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 import pytest
-from anything_important.gmail import Thread, apply_label, get_or_create_label, list_unread_threads, mark_thread_read
+from anything_important.gmail import Thread, apply_label, get_or_create_label, list_important_subjects, list_unread_threads, mark_thread_read
 
 
 def _response(data: object) -> MagicMock:
@@ -87,6 +87,51 @@ async def test_get_or_create_label_creates_when_missing():
         "/gmail/v1/users/me/labels",
         json={"name": "llm-says-important"},
     )
+
+
+async def test_list_important_subjects_returns_sender_subject_tuples():
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=[
+        _response({"threads": [{"id": "t1"}, {"id": "t2"}]}),
+        _response({
+            "messages": [{
+                "payload": {
+                    "headers": [
+                        {"name": "From", "value": "boss@example.com"},
+                        {"name": "Subject", "value": "Q2 budget review"},
+                    ],
+                },
+            }],
+        }),
+        _response({
+            "messages": [{
+                "payload": {
+                    "headers": [
+                        {"name": "From", "value": "wife@gmail.com"},
+                        {"name": "Subject", "value": "Pick up kids today"},
+                    ],
+                },
+            }],
+        }),
+    ])
+
+    results = await list_important_subjects(client)
+
+    assert results == [
+        ("boss@example.com", "Q2 budget review"),
+        ("wife@gmail.com", "Pick up kids today"),
+    ]
+    call_args = client.get.call_args_list[0]
+    assert "is:starred OR is:important OR label:llm-says-important" in str(call_args)
+
+
+async def test_list_important_subjects_returns_empty_when_no_threads():
+    client = AsyncMock()
+    client.get = AsyncMock(return_value=_response({}))
+
+    results = await list_important_subjects(client)
+
+    assert results == []
 
 
 async def test_apply_label_adds_label_to_thread():

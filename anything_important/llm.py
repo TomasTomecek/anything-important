@@ -11,19 +11,7 @@ _RETRY_DELAY = 5.0
 _PROMPT = """\
 You are an email triage assistant. Decide if the following email is important.
 
-Important emails are ones that:
-- Require a decision or action from the recipient
-- Involve money, payments, invoices, or financial matters
-- Involve scheduling, meetings, or the recipient's time
-- Are from family, friends, or close colleagues
-- Contain urgent or time-sensitive information
-
-Not important emails are ones that:
-- Are marketing, promotions, newsletters, or advertisements
-- Are automated notifications that require no action
-- Are spam or bulk mail
-
-Respond in exactly this format:
+{examples_section}Respond in exactly this format:
 ANSWER: YES or NO
 REASON: one sentence explanation
 
@@ -31,6 +19,14 @@ From: {sender}
 Subject: {subject}
 Body:
 {body}"""
+
+_EXAMPLES_SECTION = """\
+Here are examples of emails the recipient has previously considered important:
+{examples}
+
+Use these examples to calibrate your judgment about what this recipient considers important.
+
+"""
 
 _MAX_BODY = 2000
 
@@ -41,8 +37,19 @@ async def assess_importance(
     sender: str,
     subject: str,
     body: str,
+    known_important: list[tuple[str, str]] | None = None,
 ) -> bool:
-    prompt = _PROMPT.format(sender=sender, subject=subject, body=body[:_MAX_BODY])
+    if known_important:
+        lines = "\n".join(f"- From: {s} — Subject: {sub}" for s, sub in known_important)
+        examples_section = _EXAMPLES_SECTION.format(examples=lines)
+    else:
+        examples_section = ""
+    prompt = _PROMPT.format(
+        examples_section=examples_section,
+        sender=sender,
+        subject=subject,
+        body=body[:_MAX_BODY],
+    )
     last_exc: Exception = RuntimeError("no attempts made")
     async with httpx.AsyncClient(timeout=60.0) as client:
         for attempt in range(1, _RETRY_ATTEMPTS + 1):
