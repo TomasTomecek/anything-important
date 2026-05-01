@@ -55,8 +55,19 @@ All configuration is via environment variables:
 
 ```bash
 make build
+```
 
-make run TELEGRAM_TOKEN=your_token TELEGRAM_CHAT_ID=your_chat_id
+Create a `.env` file with the required variables:
+
+```
+TELEGRAM_TOKEN=your_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+Then run:
+
+```bash
+make run
 ```
 
 Or directly with podman:

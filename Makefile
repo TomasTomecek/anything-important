@@ -10,8 +10,7 @@ build:
 run:
 	podman run --rm \
 	  --network host \
-	  -e TELEGRAM_TOKEN=$(TELEGRAM_TOKEN) \
-	  -e TELEGRAM_CHAT_ID=$(TELEGRAM_CHAT_ID) \
+	  --env-file .env \
 	  -e LLM_URL=$(LLM_URL) \
 	  -e GMAIL_QUERY='$(GMAIL_QUERY)' \
 	  -v $(GMAIL_CREDENTIALS):/credentials/oauth_credentials.json:ro,Z \
