@@ -51,7 +51,7 @@ async def test_run_once_skips_unimportant_thread():
         await run_once(_cfg(), AsyncMock())
 
     mock_send.assert_not_called()
-    mock_label.assert_not_called()
+    mock_label.assert_called_once_with(mock_label.call_args[0][0], thread_id="t2", label_id="Label_2")
 
 
 async def test_run_once_handles_multiple_threads():
@@ -71,7 +71,7 @@ async def test_run_once_handles_multiple_threads():
         await run_once(_cfg(), AsyncMock())
 
     assert mock_send.call_count == 2
-    assert mock_label.call_count == 2
+    assert mock_label.call_count == 3
 
 
 async def test_run_once_handles_empty_inbox():

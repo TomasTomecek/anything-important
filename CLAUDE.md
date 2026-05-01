@@ -24,7 +24,7 @@ with a 5-second delay on network/transport errors.
 Important threads are labeled `llm-says-important` via the Gmail API. The default query excludes
 threads already carrying this label so they are never re-processed.
 
-Default query: `is:unread newer_than:5d -label:llm-says-important`
+Default query: `is:unread newer_than:5d -label:llm-says-important -label:llm-says-meh`
 
 ## Running tests
 

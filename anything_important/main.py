@@ -24,6 +24,7 @@ _GMAIL_SCOPES = [
 
 
 _IMPORTANT_LABEL = "llm-says-important"
+_MEH_LABEL = "llm-says-meh"
 
 
 async def run_once(
@@ -32,6 +33,7 @@ async def run_once(
     known_important: list[tuple[str, str]] | None = None,
 ) -> None:
     label_id = await get_or_create_label(client, _IMPORTANT_LABEL)
+    meh_label_id = await get_or_create_label(client, _MEH_LABEL)
     threads = await list_unread_threads(client, query=config.gmail_query)
     log.info("Found %d unread threads", len(threads))
     for thread in threads:
@@ -53,6 +55,7 @@ async def run_once(
             await apply_label(client, thread_id=thread.id, label_id=label_id)
         else:
             log.info("Skipping unimportant thread from %s", thread.sender)
+            await apply_label(client, thread_id=thread.id, label_id=meh_label_id)
 
 
 @asynccontextmanager

@@ -49,7 +49,7 @@ All configuration is via environment variables:
 | `LLM_MODEL` | `llama3.2` | Model name |
 | `CHECK_INTERVAL` | `300` | Seconds between inbox checks |
 | `GMAIL_CREDENTIALS_FILE` | `/credentials/oauth_credentials.json` | Path to OAuth2 credentials JSON |
-| `GMAIL_QUERY` | `is:unread newer_than:5d -label:llm-says-important` | Gmail search query to filter threads |
+| `GMAIL_QUERY` | `is:unread newer_than:5d -label:llm-says-important -label:llm-says-meh` | Gmail search query to filter threads |
 
 ## Run
 
@@ -75,6 +75,10 @@ podman run --rm \
 
 ## How it works
 
-`anything-important` uses the Gmail REST API to read your inbox. Each unread thread is sent
-to the local LLM for importance assessment. Important threads trigger a Telegram notification
-and are labeled `llm-says-important` in Gmail so they are not re-processed on the next check.
+`anything-important` uses the Gmail REST API to read your inbox. On startup it fetches up to
+100 of your starred, important, or previously labeled threads and uses their sender and subject
+lines as calibration examples for the LLM — so importance judgement is personalised to you.
+
+Each unread thread is then sent to the local LLM for importance assessment:
+- **Important** — triggers a Telegram notification and is labeled `llm-says-important` so it is not re-processed.
+- **Not important** — labeled `llm-says-meh` and excluded from future queries.
