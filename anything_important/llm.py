@@ -89,3 +89,18 @@ async def assess_importance(
     important = answer.startswith("YES")
     log.info("Decision: %s — %s", answer, reason)
     return important
+
+
+_SUMMARY_PROMPT = """\
+You are an email assistant. Summarize the following email in 2-3 sentences, \
+focusing on action items, deadlines, and key decisions. Be concise and specific.
+
+From: {sender}
+Subject: {subject}
+Body:
+{body}"""
+
+
+async def summarize_email(llm_url: str, model: str, sender: str, subject: str, body: str) -> str:
+    prompt = _SUMMARY_PROMPT.format(sender=sender, subject=subject, body=body[:_MAX_BODY])
+    return await _call_llm(llm_url, model, prompt)

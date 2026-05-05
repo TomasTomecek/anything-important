@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
-from anything_important.llm import assess_importance
+from anything_important.llm import assess_importance, summarize_email
 
 
 def _llm_response(text: str) -> MagicMock:
@@ -260,6 +260,58 @@ async def test_assess_importance_truncates_long_body():
 
     with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
         await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body=long_body,
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert len(prompt_text) < 5000
+
+
+async def test_summarize_email_returns_llm_response():
+    mock_client = _make_mock_client(_llm_response("Sign the contract by Friday."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        result = await summarize_email(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="boss@example.com",
+            subject="Contract",
+            body="Please sign the attached document.",
+        )
+
+    assert result == "Sign the contract by Friday."
+
+
+async def test_summarize_email_includes_email_fields_in_prompt():
+    mock_client = _make_mock_client(_llm_response("Summary."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await summarize_email(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="cto@example.com",
+            subject="Deploy tonight",
+            body="We need to deploy version 2.0 tonight.",
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "cto@example.com" in prompt_text
+    assert "Deploy tonight" in prompt_text
+    assert "We need to deploy version 2.0 tonight." in prompt_text
+
+
+async def test_summarize_email_truncates_long_body():
+    long_body = "x" * 5000
+    mock_client = _make_mock_client(_llm_response("Summary."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await summarize_email(
             llm_url="http://localhost:8080",
             model="llama3",
             sender="a@b.com",
