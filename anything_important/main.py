@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+import os
 import pathlib
 from contextlib import asynccontextmanager
 
@@ -10,7 +11,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from anything_important.auth import get_access_token
 from anything_important.config import Config
 from anything_important.gmail import apply_label, get_or_create_label, list_important_subjects, list_unread_threads, mark_thread_read
-from anything_important.llm import assess_importance
+from anything_important.llm import assess_importance, summarize_email
 from anything_important.telegram import send_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -36,6 +37,7 @@ async def run_once(
     meh_label_id = await get_or_create_label(client, _MEH_LABEL)
     threads = await list_unread_threads(client, query=config.gmail_query)
     log.info("Found %d unread threads", len(threads))
+    important_threads = []
     for thread in threads:
         important = await assess_importance(
             llm_url=config.llm_url,
@@ -47,15 +49,38 @@ async def run_once(
         )
         if important:
             log.info("Important: %s — %s", thread.sender, thread.subject)
-            await send_message(
-                token=config.telegram_token,
-                chat_id=config.telegram_chat_id,
-                text=f"📧 Important email from {thread.sender}\nSubject: {thread.subject}",
-            )
             await apply_label(client, thread_id=thread.id, label_id=label_id)
+            important_threads.append(thread)
         else:
             log.info("Skipping unimportant thread from %s", thread.sender)
             await apply_label(client, thread_id=thread.id, label_id=meh_label_id)
+
+    if not important_threads:
+        return
+
+    entries = []
+    for i, thread in enumerate(important_threads, 1):
+        try:
+            summary = await summarize_email(
+                llm_url=config.llm_url,
+                model=config.llm_model,
+                sender=thread.sender,
+                subject=thread.subject,
+                body=thread.body,
+            )
+        except Exception:
+            log.warning("Failed to summarize thread %s, falling back to body excerpt", thread.id)
+            summary = thread.body[:250]
+        entries.append(f"{i}. From: {thread.sender}\n   Subject: {thread.subject}\n   {summary}")
+
+    n = len(important_threads)
+    header = f"📧 {n} important email{'s' if n != 1 else ''}:"
+    text = header + "\n\n" + "\n\n".join(entries)
+    await send_message(
+        token=config.telegram_token,
+        chat_id=config.telegram_chat_id,
+        text=text,
+    )
 
 
 @asynccontextmanager
@@ -85,11 +110,16 @@ async def _run_loop(config: Config) -> None:
 
 def _cmd_auth(args: argparse.Namespace) -> None:
     flow = InstalledAppFlow.from_client_secrets_file(args.client_secret, _GMAIL_SCOPES)
-    flow.redirect_uri = f"http://localhost:{args.port}"
-    auth_url, _ = flow.authorization_url(prompt="consent")
-    print(f"Open this URL in a browser:\n\n  {auth_url}\n")
-    redirect_response = input("After approving, paste the full redirect URL here: ").strip()
-    flow.fetch_token(authorization_response=redirect_response)
+    if args.local:
+        print(f"Starting local server on port {args.port} — open the URL printed below in your browser.")
+        flow.run_local_server(port=args.port, open_browser=False)
+    else:
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        flow.redirect_uri = f"http://localhost:{args.port}"
+        auth_url, _ = flow.authorization_url(prompt="consent")
+        print(f"Open this URL in a browser:\n\n  {auth_url}\n")
+        redirect_response = input("After approving, paste the full redirect URL here: ").strip()
+        flow.fetch_token(authorization_response=redirect_response)
     pathlib.Path(args.output).write_text(flow.credentials.to_json())
     print(f"Saved {args.output}")
 
@@ -105,6 +135,8 @@ def main() -> None:
                              help="Where to save the credentials (default: oauth_credentials.json)")
     auth_parser.add_argument("--port", type=int, default=8080, metavar="PORT",
                              help="Local port for the OAuth2 redirect (default: 8080)")
+    auth_parser.add_argument("--local", action="store_true",
+                             help="Start a local server to capture the redirect automatically (requires browser on this machine)")
 
     args = parser.parse_args()
 
