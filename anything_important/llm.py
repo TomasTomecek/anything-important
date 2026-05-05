@@ -31,6 +31,31 @@ Use these examples to calibrate your judgment about what this recipient consider
 _MAX_BODY = 2000
 
 
+async def _call_llm(llm_url: str, model: str, prompt: str) -> str:
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        for attempt in range(1, _RETRY_ATTEMPTS + 1):
+            try:
+                response = await client.post(
+                    f"{llm_url}/api/chat",
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "stream": False,
+                        "reasoning_effort": "medium",
+                    },
+                )
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"].strip()
+            except (httpx.TransportError, httpx.TimeoutException) as exc:
+                if attempt < _RETRY_ATTEMPTS:
+                    log.warning("LLM request failed (attempt %d/%d): %s — retrying in %gs",
+                                attempt, _RETRY_ATTEMPTS, exc, _RETRY_DELAY)
+                    await asyncio.sleep(_RETRY_DELAY)
+                else:
+                    log.error("LLM request failed after %d attempts: %s", _RETRY_ATTEMPTS, exc)
+                    raise
+
+
 async def assess_importance(
     llm_url: str,
     model: str,
@@ -50,31 +75,7 @@ async def assess_importance(
         subject=subject,
         body=body[:_MAX_BODY],
     )
-    last_exc: Exception = RuntimeError("no attempts made")
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        for attempt in range(1, _RETRY_ATTEMPTS + 1):
-            try:
-                response = await client.post(
-                    f"{llm_url}/api/chat",
-                    json={
-                        "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "stream": False,
-                        "reasoning_effort": "medium",
-                    },
-                )
-                response.raise_for_status()
-                text = response.json()["choices"][0]["message"]["content"].strip()
-                break
-            except (httpx.TransportError, httpx.TimeoutException) as exc:
-                last_exc = exc
-                if attempt < _RETRY_ATTEMPTS:
-                    log.warning("LLM request failed (attempt %d/%d): %s — retrying in %gs",
-                                attempt, _RETRY_ATTEMPTS, exc, _RETRY_DELAY)
-                    await asyncio.sleep(_RETRY_DELAY)
-                else:
-                    log.error("LLM request failed after %d attempts: %s", _RETRY_ATTEMPTS, exc)
-                    raise
+    text = await _call_llm(llm_url, model, prompt)
 
     answer = "NO"
     reason = ""
