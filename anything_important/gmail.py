@@ -34,6 +34,7 @@ async def list_unread_threads(client: httpx.AsyncClient, query: str = "is:unread
     )
     response.raise_for_status()
     thread_stubs = response.json().get("threads", [])
+    # TODO: fetch thread details concurrently with asyncio.gather instead of sequentially
     threads = []
     for stub in thread_stubs:
         detail_response = await client.get(
