@@ -25,6 +25,19 @@ async def test_send_message_posts_to_correct_url():
     )
 
 
+async def test_send_message_logs_text_before_sending(caplog):
+    import logging
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    mock_client = _make_mock_client(response)
+
+    with patch("anything_important.telegram.httpx.AsyncClient", return_value=mock_client):
+        with caplog.at_level(logging.INFO, logger="anything_important.telegram"):
+            await send_message(token="tok", chat_id="1", text="Hello from triage")
+
+    assert "Hello from triage" in caplog.text
+
+
 async def test_send_message_raises_on_http_error():
     response = MagicMock()
     response.raise_for_status = MagicMock(side_effect=Exception("HTTP 400"))
