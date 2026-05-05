@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 import pytest
-from anything_important.gmail import Thread, apply_label, get_or_create_label, list_important_subjects, list_unread_threads, mark_thread_read
+from anything_important.gmail import Thread, apply_label, get_or_create_label, list_important_subjects, list_unimportant_subjects, list_unread_threads, mark_thread_read
 
 
 def _response(data: object) -> MagicMock:
@@ -130,6 +130,40 @@ async def test_list_important_subjects_returns_empty_when_no_threads():
     client.get = AsyncMock(return_value=_response({}))
 
     results = await list_important_subjects(client)
+
+    assert results == []
+
+
+async def test_list_unimportant_subjects_returns_sender_subject_tuples():
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=[
+        _response({"threads": [{"id": "t1"}]}),
+        _response({
+            "messages": [{
+                "payload": {
+                    "headers": [
+                        {"name": "From", "value": "newsletter@shop.com"},
+                        {"name": "Subject", "value": "50% off everything"},
+                    ],
+                },
+            }],
+        }),
+    ])
+
+    results = await list_unimportant_subjects(client)
+
+    assert results == [("newsletter@shop.com", "50% off everything")]
+    query_call = client.get.call_args_list[0]
+    assert "llm-says-meh" in str(query_call)
+    assert "llm-says-important" in str(query_call)
+    assert "50" in str(query_call)
+
+
+async def test_list_unimportant_subjects_returns_empty_when_no_threads():
+    client = AsyncMock()
+    client.get = AsyncMock(return_value=_response({}))
+
+    results = await list_unimportant_subjects(client)
 
     assert results == []
 

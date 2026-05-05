@@ -272,6 +272,66 @@ async def test_assess_importance_truncates_long_body():
     assert len(prompt_text) < 5000
 
 
+async def test_assess_importance_includes_unimportant_examples_in_prompt():
+    mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+            known_unimportant=[
+                ("newsletter@shop.com", "50% off everything"),
+                ("promo@ads.com", "Check out our deals"),
+            ],
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "newsletter@shop.com" in prompt_text
+    assert "50% off everything" in prompt_text
+    assert "promo@ads.com" in prompt_text
+    assert "not important" in prompt_text.lower()
+
+
+async def test_assess_importance_omits_unimportant_section_when_none():
+    mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+            known_unimportant=None,
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "previously considered not important" not in prompt_text.lower()
+
+
+async def test_assess_importance_omits_unimportant_section_when_empty():
+    mock_client = _make_mock_client(_llm_response("ANSWER: NO\nREASON: Not actionable."))
+
+    with patch("anything_important.llm.httpx.AsyncClient", return_value=mock_client):
+        await assess_importance(
+            llm_url="http://localhost:8080",
+            model="llama3",
+            sender="a@b.com",
+            subject="hi",
+            body="body",
+            known_unimportant=[],
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    prompt_text = payload["messages"][0]["content"]
+    assert "previously considered not important" not in prompt_text.lower()
+
+
 async def test_summarize_email_returns_llm_response():
     mock_client = _make_mock_client(_llm_response("Sign the contract by Friday."))
 

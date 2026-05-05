@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from anything_important.config import Config
 from anything_important.gmail import Thread
-from anything_important.main import _cmd_auth, run_once
+from anything_important.main import _cmd_auth, _run_loop, run_once
 
 
 def _cfg() -> Config:
@@ -217,3 +217,34 @@ async def test_run_once_falls_back_to_body_excerpt_on_summarize_failure():
     text = mock_send.call_args.kwargs["text"]
     assert "x" * 250 in text
     assert "x" * 251 not in text
+
+
+async def test_run_once_passes_known_unimportant_to_assess_importance():
+    thread = Thread(id="t1", message_id="m1", sender="a@b.com", subject="hi", body="body")
+    unimportant = [("news@example.com", "Weekly digest")]
+
+    with (
+        patch("anything_important.main.get_or_create_label", AsyncMock(return_value="Label_1")),
+        patch("anything_important.main.list_unread_threads", AsyncMock(return_value=[thread])),
+        patch("anything_important.main.assess_importance", AsyncMock(return_value=False)) as mock_assess,
+        patch("anything_important.main.apply_label", AsyncMock()),
+    ):
+        await run_once(_cfg(), AsyncMock(), known_unimportant=unimportant)
+
+    mock_assess.assert_called_once()
+    assert mock_assess.call_args.kwargs["known_unimportant"] == unimportant
+
+
+async def test_run_loop_loads_unimportant_subjects_at_startup():
+    with (
+        patch("anything_important.main.get_access_token", return_value="tok"),
+        patch("anything_important.main.list_important_subjects", AsyncMock(return_value=[])),
+        patch("anything_important.main.list_unimportant_subjects", AsyncMock(return_value=[("n@x.com", "promo")])) as mock_unimportant,
+        patch("anything_important.main.run_once", AsyncMock(side_effect=KeyboardInterrupt)),
+    ):
+        try:
+            await _run_loop(_cfg())
+        except KeyboardInterrupt:
+            pass
+
+    mock_unimportant.assert_called_once()

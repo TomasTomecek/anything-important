@@ -10,7 +10,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from anything_important.auth import get_access_token
 from anything_important.config import Config
-from anything_important.gmail import apply_label, get_or_create_label, list_important_subjects, list_unread_threads, mark_thread_read
+from anything_important.gmail import apply_label, get_or_create_label, list_important_subjects, list_unimportant_subjects, list_unread_threads, mark_thread_read
 from anything_important.llm import assess_importance, summarize_email
 from anything_important.telegram import send_message
 
@@ -32,6 +32,7 @@ async def run_once(
     config: Config,
     client: httpx.AsyncClient,
     known_important: list[tuple[str, str]] | None = None,
+    known_unimportant: list[tuple[str, str]] | None = None,
 ) -> None:
     label_id = await get_or_create_label(client, _IMPORTANT_LABEL)
     meh_label_id = await get_or_create_label(client, _MEH_LABEL)
@@ -46,6 +47,7 @@ async def run_once(
             subject=thread.subject,
             body=thread.body,
             known_important=known_important,
+            known_unimportant=known_unimportant,
         )
         if important:
             log.info("Important: %s — %s", thread.sender, thread.subject)
@@ -96,12 +98,14 @@ async def _gmail_client(config: Config):
 async def _run_loop(config: Config) -> None:
     async with _gmail_client(config) as client:
         known_important = await list_important_subjects(client)
+        known_unimportant = await list_unimportant_subjects(client)
     log.info("Loaded %d example important subjects", len(known_important))
+    log.info("Loaded %d example unimportant subjects", len(known_unimportant))
 
     while True:
         try:
             async with _gmail_client(config) as client:
-                await run_once(config, client, known_important=known_important)
+                await run_once(config, client, known_important=known_important, known_unimportant=known_unimportant)
         except Exception:
             log.exception("Error during check cycle")
         log.info("Sleeping %ds until next check", config.check_interval)

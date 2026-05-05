@@ -28,6 +28,14 @@ Use these examples to calibrate your judgment about what this recipient consider
 
 """
 
+_UNIMPORTANT_EXAMPLES_SECTION = """\
+Here are examples of emails the recipient has previously considered not important:
+{examples}
+
+Use these examples to calibrate your judgment about what this recipient considers unimportant.
+
+"""
+
 _MAX_BODY = 2000
 
 
@@ -63,12 +71,16 @@ async def assess_importance(
     subject: str,
     body: str,
     known_important: list[tuple[str, str]] | None = None,
+    known_unimportant: list[tuple[str, str]] | None = None,
 ) -> bool:
     if known_important:
         lines = "\n".join(f"- From: {s} — Subject: {sub}" for s, sub in known_important)
         examples_section = _EXAMPLES_SECTION.format(examples=lines)
     else:
         examples_section = ""
+    if known_unimportant:
+        lines = "\n".join(f"- From: {s} — Subject: {sub}" for s, sub in known_unimportant)
+        examples_section += _UNIMPORTANT_EXAMPLES_SECTION.format(examples=lines)
     prompt = _PROMPT.format(
         examples_section=examples_section,
         sender=sender,
