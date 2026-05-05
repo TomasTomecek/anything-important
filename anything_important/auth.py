@@ -6,4 +6,6 @@ def get_access_token(credentials_file: str) -> str:
     creds = Credentials.from_authorized_user_file(credentials_file)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
+    if not creds.valid:
+        raise RuntimeError(f"Credentials in {credentials_file} are not valid and cannot be refreshed")
     return creds.token

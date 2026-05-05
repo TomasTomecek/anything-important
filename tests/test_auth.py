@@ -33,6 +33,7 @@ def test_get_access_token_refreshes_expired_credentials(tmp_path):
     mock_creds.expired = True
     mock_creds.refresh_token = "refresh789"
     mock_creds.token = "new_token"
+    mock_creds.valid = True
 
     with (
         patch("anything_important.auth.Credentials.from_authorized_user_file", return_value=mock_creds),
@@ -42,3 +43,17 @@ def test_get_access_token_refreshes_expired_credentials(tmp_path):
 
     mock_creds.refresh.assert_called_once()
     assert token == "new_token"
+
+
+def test_get_access_token_raises_when_credentials_invalid(tmp_path):
+    creds_file = tmp_path / "creds.json"
+    creds_file.write_text("{}")
+
+    mock_creds = MagicMock()
+    mock_creds.expired = True
+    mock_creds.refresh_token = None
+    mock_creds.valid = False
+
+    with patch("anything_important.auth.Credentials.from_authorized_user_file", return_value=mock_creds):
+        with pytest.raises(RuntimeError, match="not valid"):
+            get_access_token(str(creds_file))
