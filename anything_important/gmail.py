@@ -1,7 +1,10 @@
 import base64
+import logging
 from dataclasses import dataclass
 
 import httpx
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -90,6 +93,7 @@ async def list_important_subjects(
     )
     response.raise_for_status()
     thread_stubs = response.json().get("threads", [])
+    log.info("Found %d important threads", len(thread_stubs))
     results = []
     for stub in thread_stubs:
         detail_response = await client.get(
@@ -118,6 +122,7 @@ async def list_unimportant_subjects(
     )
     response.raise_for_status()
     thread_stubs = response.json().get("threads", [])
+    log.info("Found %d important threads", len(thread_stubs))
     results = []
     for stub in thread_stubs:
         detail_response = await client.get(
