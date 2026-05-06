@@ -81,7 +81,7 @@ async def get_or_create_label(client: httpx.AsyncClient, name: str) -> str:
 
 
 async def list_important_subjects(
-    client: httpx.AsyncClient, max_results: int = 100
+    client: httpx.AsyncClient, max_results: int = 50
 ) -> list[tuple[str, str]]:
     query = "is:starred OR is:important OR label:llm-says-important"
     response = await client.get(
