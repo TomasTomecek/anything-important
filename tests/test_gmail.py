@@ -1,6 +1,11 @@
+import base64
 from unittest.mock import AsyncMock, MagicMock
 import pytest
 from anything_important.gmail import Thread, apply_label, get_or_create_label, list_important_subjects, list_unimportant_subjects, list_unread_threads, mark_thread_read
+
+
+def _b64(text: str) -> str:
+    return base64.urlsafe_b64encode(text.encode()).decode().rstrip("=")
 
 
 def _response(data: object) -> MagicMock:
@@ -37,6 +42,88 @@ async def test_list_unread_threads_returns_thread_objects():
     assert threads[0].sender == "boss@example.com"
     assert threads[0].subject == "Urgent meeting"
     assert threads[0].body == "Please join the meeting."
+
+
+async def test_list_unread_threads_strips_html_body():
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=[
+        _response({"threads": [{"id": "t1"}]}),
+        _response({
+            "id": "t1",
+            "messages": [{
+                "id": "m1",
+                "payload": {
+                    "mimeType": "text/html",
+                    "headers": [
+                        {"name": "From", "value": "a@b.com"},
+                        {"name": "Subject", "value": "hi"},
+                    ],
+                    "body": {"data": _b64("<p>Click <b>here</b> to &amp; confirm.</p>")},
+                },
+            }],
+        }),
+    ])
+
+    threads = await list_unread_threads(client, query="is:unread")
+
+    assert threads[0].body == "Click here to & confirm."
+
+
+async def test_list_unread_threads_prefers_plain_text_in_multipart():
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=[
+        _response({"threads": [{"id": "t1"}]}),
+        _response({
+            "id": "t1",
+            "messages": [{
+                "id": "m1",
+                "payload": {
+                    "mimeType": "multipart/alternative",
+                    "headers": [
+                        {"name": "From", "value": "a@b.com"},
+                        {"name": "Subject", "value": "hi"},
+                    ],
+                    "body": {},
+                    "parts": [
+                        {"mimeType": "text/plain", "body": {"data": _b64("Plain text content.")}},
+                        {"mimeType": "text/html", "body": {"data": _b64("<p>HTML content.</p>")}},
+                    ],
+                },
+            }],
+        }),
+    ])
+
+    threads = await list_unread_threads(client, query="is:unread")
+
+    assert threads[0].body == "Plain text content."
+
+
+async def test_list_unread_threads_falls_back_to_stripped_html_in_multipart():
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=[
+        _response({"threads": [{"id": "t1"}]}),
+        _response({
+            "id": "t1",
+            "messages": [{
+                "id": "m1",
+                "payload": {
+                    "mimeType": "multipart/alternative",
+                    "headers": [
+                        {"name": "From", "value": "a@b.com"},
+                        {"name": "Subject", "value": "hi"},
+                    ],
+                    "body": {},
+                    "parts": [
+                        {"mimeType": "text/html", "body": {"data": _b64("<p>HTML <b>only</b>.</p>")}},
+                    ],
+                },
+            }],
+        }),
+    ])
+
+    threads = await list_unread_threads(client, query="is:unread")
+
+    assert threads[0].body == "HTML only."
 
 
 async def test_list_unread_threads_returns_empty_when_no_threads():

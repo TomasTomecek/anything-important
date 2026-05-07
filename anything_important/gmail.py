@@ -1,6 +1,8 @@
 import base64
 import logging
+import html as html_module
 from dataclasses import dataclass
+from html.parser import HTMLParser
 
 import httpx
 
@@ -30,6 +32,51 @@ def _decode_body(data: str) -> str:
         return ""
 
 
+class _HTMLTextExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self._parts.append(data)
+
+    def get_text(self) -> str:
+        return "".join(self._parts)
+
+
+def _strip_html(text: str) -> str:
+    parser = _HTMLTextExtractor()
+    parser.feed(text)
+    return html_module.unescape(parser.get_text())
+
+
+def _extract_body(payload: dict) -> str:
+    mime_type = payload.get("mimeType", "")
+    if mime_type.startswith("multipart/"):
+        parts = payload.get("parts", [])
+        for part in parts:
+            if part.get("mimeType") == "text/plain":
+                data = part.get("body", {}).get("data", "")
+                if data:
+                    return _decode_body(data)
+        for part in parts:
+            if part.get("mimeType") == "text/html":
+                data = part.get("body", {}).get("data", "")
+                if data:
+                    return _strip_html(_decode_body(data))
+        for part in parts:
+            if part.get("mimeType", "").startswith("multipart/"):
+                text = _extract_body(part)
+                if text:
+                    return text
+        return ""
+    data = payload.get("body", {}).get("data", "")
+    if not data:
+        return ""
+    text = _decode_body(data)
+    return _strip_html(text) if mime_type == "text/html" else text
+
+
 async def list_unread_threads(client: httpx.AsyncClient, query: str = "is:unread") -> list[Thread]:
     response = await client.get(
         "/gmail/v1/users/me/threads",
@@ -50,15 +97,15 @@ async def list_unread_threads(client: httpx.AsyncClient, query: str = "is:unread
         if not messages:
             continue
         first = messages[0]
-        headers = first.get("payload", {}).get("headers", [])
-        body_data = first.get("payload", {}).get("body", {}).get("data", "")
+        payload = first.get("payload", {})
+        headers = payload.get("headers", [])
         threads.append(
             Thread(
                 id=detail["id"],
                 message_id=first["id"],
                 sender=_header(headers, "From"),
                 subject=_header(headers, "Subject"),
-                body=_decode_body(body_data),
+                body=_extract_body(payload),
             )
         )
     return threads
