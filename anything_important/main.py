@@ -109,6 +109,9 @@ async def _run_loop(config: Config) -> None:
                 await run_once(config, client, known_important=known_important, known_unimportant=known_unimportant)
         except Exception:
             log.exception("Error during check cycle")
+        except KeyboardInterrupt:
+            log.info("^C Closing the loop")
+            return
         log.info("Sleeping %ds until next check", config.check_interval)
         await asyncio.sleep(config.check_interval)
 
