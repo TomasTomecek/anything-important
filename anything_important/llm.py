@@ -44,7 +44,7 @@ async def _call_llm(llm_url: str, model: str, prompt: str) -> str:
         for attempt in range(1, _RETRY_ATTEMPTS + 1):
             try:
                 response = await client.post(
-                    f"{llm_url}/api/chat",
+                    f"{llm_url}/v1/chat/completions",
                     json={
                         "model": model,
                         "messages": [{"role": "user", "content": prompt}],
