@@ -56,6 +56,26 @@ def test_config_missing_telegram_token_raises(monkeypatch):
         Config.from_env()
 
 
+def test_config_strips_quotes_from_gmail_query(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_TOKEN", "tok")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setenv("GMAIL_QUERY", "'is:unread newer_than:30d -label:llm-says-meh'")
+
+    cfg = Config.from_env()
+
+    assert cfg.gmail_query == "is:unread newer_than:30d -label:llm-says-meh"
+
+
+def test_config_strips_escaped_quotes_from_gmail_query(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_TOKEN", "tok")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setenv("GMAIL_QUERY", "\\'is:unread newer_than:30d -label:llm-says-meh\\'")
+
+    cfg = Config.from_env()
+
+    assert cfg.gmail_query == "is:unread newer_than:30d -label:llm-says-meh"
+
+
 def test_config_missing_chat_id_raises(monkeypatch):
     monkeypatch.setenv("TELEGRAM_TOKEN", "tok")
     monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
