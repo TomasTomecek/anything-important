@@ -80,7 +80,7 @@ def _extract_body(payload: dict) -> str:
 async def list_unread_threads(client: httpx.AsyncClient, query: str = "is:unread") -> list[Thread]:
     response = await client.get(
         "/gmail/v1/users/me/threads",
-        params={"q": query, "maxResults": 20},
+        params={"q": query, "maxResults": 7},
     )
     response.raise_for_status()
     thread_stubs = response.json().get("threads", [])
