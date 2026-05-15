@@ -64,6 +64,21 @@ async def _call_llm(llm_url: str, model: str, prompt: str) -> str:
                     raise
 
 
+async def check_connection(llm_url: str, model: str) -> None:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            f"{llm_url}/v1/chat/completions",
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": "hi"}],
+                "max_tokens": 1,
+                "stream": False,
+            },
+        )
+        response.raise_for_status()
+    log.info("LLM connection OK")
+
+
 async def assess_importance(
     llm_url: str,
     model: str,

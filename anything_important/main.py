@@ -11,7 +11,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from anything_important.auth import get_access_token
 from anything_important.config import Config
 from anything_important.gmail import apply_label, get_or_create_label, list_important_subjects, list_unimportant_subjects, list_unread_threads, mark_thread_read
-from anything_important.llm import assess_importance, summarize_email
+from anything_important.llm import assess_importance, check_connection, summarize_email
 from anything_important.telegram import send_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -96,6 +96,7 @@ async def _gmail_client(config: Config):
 
 
 async def _run_loop(config: Config) -> None:
+    await check_connection(config.llm_url, config.llm_model)
     async with _gmail_client(config) as client:
         known_important = await list_important_subjects(client)
         known_unimportant = await list_unimportant_subjects(client)
